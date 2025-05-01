@@ -36,7 +36,7 @@ double calculate_fitness(Individual *ind);
 void initialize_population(Population *pop);
 void evaluate_population(Population *pop);
 Individual select_parent_tournament(Population *pop);
-void crossover(Individual parent1, Individual parent2, Individual *offspring1, individual *offspring2);
+void crossover(Individual parent1, Individual parent2, Individual *offspring1, Individual *offspring2);
 void mutate(Individual *ind);
 void print_individual(Individual *ind);
 
@@ -54,7 +54,7 @@ int main(){
 	printf("genetic algorithm start\n");
 	printf("parameters: pop_size=%d, chromo_len=%d, gens=%d, mut_rate=%.2f, cross_rate=%.2f\n"POPULATION_SIZE, CHROMOSOME_LENGTH, MAX_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE);
 	printf("-------------------------------------------------------------");
-	printf("Generation 0: Best Fitness = %.4f\n", current_population.individuals[current_population.best_individual].fitness);
+	printf("Generation 0: Best Fitness = %.4f\n", current_population.individuals[current_population.best_individual_index].fitness);
 
 	// 4) main GA loop (generational cycle)
 	for(int generation = 1; generation <= MAX_GENERATIONS; generation++){
@@ -79,7 +79,7 @@ int main(){
 
 			// d. add offspring to the new population
 			if(next_pop_idx < POPULATION_SIZE){
-				next_population.individuals[bext_pop_idx++] = offspring1;
+				next_population.individuals[next_pop_idx++] = offspring1;
 			}
 			if(next_pop_idx < POPULATION_SIZE){
 				next_population.individuals[next_pop_idx++] = offspring2;
@@ -102,7 +102,7 @@ int main(){
 		//	- fitness hasn't improved in x generations
 		/*
 		 * if(current_population.individuals[current_population.best_individual_index].fitness >= TARGET_FITNESS){
-		 * 	printf("tarhet fitness reached at generation %d!\n, generation);
+		 * 	printf("target fitness reached at generation %d!\n, generation);
 		 * 	break;
 		 * 	}
 		 * }
@@ -120,3 +120,61 @@ int main(){
 
 	return 0;
 }
+
+
+// fitness function - customize this!
+double calculate_fitness(Individual *ind){
+	double score = 0.0;
+	for(int i=0;i<CHROMOSOME_LENGTH;i++){
+		if(ind->genes[i]==1)
+			score += 1.0;
+	}
+	return score;
+}
+
+
+// GA core functions implementations
+
+/**
+ * @brief initializes the population with random individuals.
+ * @param pop Pointer to the Population struct to initialize
+ */
+
+void initialize_population(Population *pop){
+	for(int i=0;i<POPULATION_SIZE;i++){
+		for(int j=0;j<CHROMOSOME_LENGTH;j++){
+			// randomly initialize genes (bin)
+			pop->individuals[i].genes[j] = rand() % 2;
+		}
+		//initialize fitness to 0 before evaluation
+		pop->individuals[i].fitness = 0.0;
+	}
+	pop->best_individual_index = -1; // not id'd yet
+	pop->total_fitness = 0.0; //not calculated yet
+}
+
+
+/**
+ * @brief calculates the fitness for each individual in the population
+ * @param pop pointer to the Population struct to evaluate
+ */
+
+void evaluate_population(Population *pop){
+	pop->total_fitness=0.0;
+	double best_fitness = -1e0; // very small number - assumes non-negative fitness
+	for(int i=0;i<POPULATION_SIZE;i++){
+		//calculating and storing fitness for each individual
+		pop->individuals[i].fitness = calculate_fitness(&(pop->individuals[i]));
+		pop->total_fitness+=pop->individuals[i].fitness;
+		//tracking the best individual so far found in this generation
+		if(pop->individuals[i].fitness>best_fitness){
+			best_fitness = pop->individuals[i].fitness;
+			pop->best_individual_index = i;
+		}
+	}
+	// cases where all fitnesses might be 0 or <0
+	if(pop->best_individual_index == -1 && POPULATION_SIZE > 0)
+		pop->best_individual_index = 0;
+}
+
+
