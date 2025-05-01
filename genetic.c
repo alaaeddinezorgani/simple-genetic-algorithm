@@ -52,7 +52,7 @@ int main(){
 	evaluate_population(&current_population);
 
 	printf("genetic algorithm start\n");
-	printf("parameters: pop_size=%d, chromo_len=%d, gens=%d, mut_rate=%.2f, cross_rate=%.2f\n"POPULATION_SIZE, CHROMOSOME_LENGTH, MAX_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE);
+	printf("parameters: pop_size=%d, chromo_len=%d, gens=%d, mut_rate=%.2f, cross_rate=%.2f\n",POPULATION_SIZE, CHROMOSOME_LENGTH, MAX_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE);
 	printf("-------------------------------------------------------------");
 	printf("Generation 0: Best Fitness = %.4f\n", current_population.individuals[current_population.best_individual_index].fitness);
 
@@ -177,4 +177,89 @@ void evaluate_population(Population *pop){
 		pop->best_individual_index = 0;
 }
 
+/**
+ * @brief selects a parent from the population using tournament selection.
+ * randomly picks TOURNAMENT_SIZE individuals and returns the fittest among them.
+ * @param pop pointer to the current population.
+ * @return a copy of the selected parent individual
+ */
 
+Individual select_parent_tournament(Population *pop){
+	int best_idx = -1;
+	double best_fitness = -1e9; // very small number
+	
+	// running the tournament
+	for(int i=0;i<TOURNAMENT_SIZE;i++){
+		int random_idx = rand() % POPULATION_SIZE; // picks a random competitor
+		if(pop->individuals[random_idx].fitness>best_fitness){
+			best_fitness = pop->individuals[random_idx].fitness;
+			best_idx = random_idx;
+		}
+	}
+	// return a copy of the winner
+	// defaults to 0 if best_idx remains -1
+	if(best_idx == -1) best_idx = rand() % POPULATION_SIZE;
+	return pop->individuals[best_idx];
+}
+
+/**
+ * @brief performs single-point crossover between two parents to create two offspring.
+ * crossover occurs based on CROSSOVER_RATE. if no crossover, offspring are clones.
+ * @param parent1 the first parent individual.
+ * @param parent2 the 2nd parent individual.
+ * @param offspring1 pointer to the first offspring individual.
+ * @param offspring2 pointer to the 2nd offspring individual.
+ */
+
+void crossover(Individual parent1, Individual parent2, Individual *offspring1, Individual *offspring2){
+	// decide if crossover will happen based on the rate
+	if(((double)rand() / RAND_MAX) > CROSSOVER_RATE){
+		// no crossover - offspring are clones of the parents
+		*offspring1 = parent1;
+		*offspring2 = parent2;
+	}else{
+		// crossover - choose point in [idx1 : len(2)]
+		int point = (rand() % (CHROMOSOME_LENGTH -1))+1;
+		// create offspring by swapping gene segments
+		for(int i=0;i<CHROMOSOME_LENGTH;i++){
+			if(i<point){
+				//1st part of parent1, 2nd part of parent2
+				offspring1->genes[i] = parent1.genes[i];
+				offspring2->genes[i] = parent2.genes[i];
+			}else{
+				//1st part of parent2, 2nd part of parent1
+				offspring1->genes[i] = parent2.genes[i];
+				offspring2->genes[i] = parent1.genes[i];
+			}
+		}
+	}
+	// resetting fitness for offspring (later evaluated)
+	offspring1->fitness = 0.0;
+	offspring2->fitness = 0.0;
+}
+
+/**
+ * @brief applies mutation to an individual's genes based on MUTATION_RATE
+ * flipping a bit...
+ * @param ind pointer to the individual to potentially mutate
+ */
+
+void mutate(Individual *ind){
+	for(int i=0;i<CHROMOSOME_LENGTH;i++){
+		if(((double)rand() / RAND_MAX) < MUTATION_RATE)
+			ind->genes[i] = 1 - ind->genes[i];
+	}
+}
+
+/**
+ * @brief helper function to print the genes of an individual.
+ * @param ind pointer to the individual to print.
+ */
+
+void print_individual(Individual *ind){
+	printf("[ ");
+	for(int i=0;i<CHROMOSOME_LENGTH;i++){
+		printf("%d ", ind->genes[i]);
+	}
+	printf("]\n");
+}
